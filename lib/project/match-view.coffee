@@ -7,24 +7,38 @@ removeLeadingWhitespace = (string) -> string.replace(LeadingWhitespace, '')
 module.exports =
 class MatchView extends View
   @content: (model, {filePath, match}) ->
+    console.log("range:", match.range, match)
     range = Range.fromObject(match.range)
     matchStart = range.start.column - match.lineTextOffset
     matchEnd = range.end.column - match.lineTextOffset
     prefix = removeLeadingWhitespace(match.lineText[0...matchStart])
     suffix = match.lineText[matchEnd..]
+    contextBefore = match.range[2] || []
+    contextAfter = match.range[3] || []
 
     @li class: 'search-result list-item', =>
-      @span range.start.row + 1, class: 'line-number text-subtle'
-      @span class: 'preview', outlet: 'preview', =>
-        @span prefix
-        @span match.matchText, class: 'match highlight-info', outlet: 'matchText'
-        @span match.matchText, class: 'replacement highlight-success', outlet: 'replacementText'
-        @span suffix
+      for i in [0...contextBefore.length]
+        line = contextBefore[i]
+        @div class: 'context context-before', =>
+          @span range.start.row + 1 - (contextBefore.length - i), class: 'line-number text-subtle'
+          @span line, class: 'preview', outlet: 'preview'
+      @div class: 'match', =>
+        @span range.start.row + 1, class: 'line-number text-subtle'
+        @span class: 'preview', outlet: 'preview', =>
+          @span prefix
+          @span match.matchText, class: 'match highlight-info', outlet: 'matchText'
+          @span match.matchText, class: 'replacement highlight-success', outlet: 'replacementText'
+          @span suffix
+      for i in [0...contextAfter.length]
+        line = contextAfter[i]
+        @div class: 'context context-after', =>
+          @span range.start.row + 1 + (i + 1), class: 'line-number text-subtle'
+          @span line, class: 'preview', outlet: 'preview'
 
   initialize: (@model, {@filePath, @match}) ->
     @render()
-    if fontFamily = atom.config.get('editor.fontFamily')
-      @preview.css('font-family', fontFamily)
+    # if fontFamily = atom.config.get('editor.fontFamily')
+    #   @preview.css('font-family', fontFamily)
 
   attached: ->
     @subscriptions = new CompositeDisposable

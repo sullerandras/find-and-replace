@@ -44,10 +44,42 @@ class ResultView extends View
       @hide()
     else
       @show()
+      @addContextToMatches(@filePath, matches)
       for match in matches
         @matches.append(new MatchView(@model, {@filePath, match}))
 
     @matches.children().eq(selectedIndex).addClass('selected') if selectedIndex > -1
+
+  addContextToMatches: (filePath, matches) ->
+    content = fs.readFileSync(filePath).toString()
+    lines = content.split('\n')
+    prevRowIndex = 0
+    for match in matches
+      if !match.range || !match.range[0]
+        continue
+
+      rowIndex = match.range[0][0]
+
+      linesBefore = Math.min(rowIndex, 2)
+      linesAfter = 2
+
+      contextBefore = []
+      contextAfter = []
+
+      for i in [0...linesBefore]
+        lineIndex = rowIndex - (linesBefore - i)
+        line = lines[lineIndex] || ''
+        line = line.substr(0, 100)
+        contextBefore.push(line)
+
+      for i in [0...linesAfter]
+        lineIndex = rowIndex + (i + 1)
+        line = lines[lineIndex] || ''
+        line = line.substr(0, 100)
+        contextAfter.push(line)
+
+      match.range.push(contextBefore)
+      match.range.push(contextAfter)
 
   expand: (expanded) ->
     # expand or collapse the list
